@@ -1,0 +1,4 @@
+python-dotenv == 0.21.1
+feedparser == 6.0.10
+py-cord == 2.4.1
+requests == 2.31.0
