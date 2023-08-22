@@ -1,25 +1,29 @@
 from urllib.parse import urljoin
 import feedparser
-from utils.database import search_job, create_job
+from database import search_job, create_job, get_links
 
 base_url = "https://www.upwork.com"
 rss_path = "/ab/feed/jobs/rss?q=django&sort=recency&paging=0"
 
 async def search_jobs():
-    url = urljoin(base_url, rss_path)
+    links = get_links() # E.g. /ab/feed/jobs/rss?q=django&sort=recency&paging=0
 
-    feed = feedparser.parse(url)
+    for link in links:
+        print(link)
+        url = urljoin(base_url, link[1])
 
-    print(f"Found {len(feed.entries)} entries")
+        feed = feedparser.parse(url)
 
-    for object in feed.entries:
-        if not search_job(upwork_id=object.id):
-            print("Creating job")
-            create_job(
-                title=object.title, 
-                link=object.link, 
-                summary=object.summary, 
-                published=object.published, 
-                upwork_id=object.id, 
-                notified=False
-            )
+        print(f"Found {len(feed.entries)} entries")
+
+        for object in feed.entries:
+            if not search_job(upwork_id=object.id):
+                print("Creating job")
+                create_job(
+                    title=object.title, 
+                    link=object.link, 
+                    summary=object.summary, 
+                    published=object.published, 
+                    upwork_id=object.id, 
+                    notified=False
+                )

@@ -8,6 +8,7 @@ jobs_channel_id = os.getenv("JOBS_CHANNEL_ID")
 
 from utils.search_jobs import search_jobs
 from utils.utils import extract_info
+from database import create_link, delete_link, get_links
 
 
 async def notify_new_jobs(bot):
@@ -67,6 +68,32 @@ class UpworkBot(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
         self.check_for_jobs.start()
+    
+    @discord.slash_command()
+    async def add_link(
+        self, 
+        ctx: commands.Context, 
+        link: discord.Option(str, "Link to Upwork jobs page")):
+        create_link(link=link)
+        await ctx.response.send_message(content="Link added", ephemeral=True)
+    
+    @discord.slash_command()
+    async def delete_link(
+        self, 
+        ctx: commands.Context, 
+        id: discord.Option(int, "Link id")):
+        delete_link(id=id)
+        await ctx.response.send_message(content="Link deleted", ephemeral=True)
+    
+    @discord.slash_command()
+    async def show_links(
+        self, 
+        ctx: commands.Context):
+        links = get_links()
+        for link in links:
+            await ctx.send(content=f"id: {link[0]}: {link[1]}")
+
+        await ctx.response.send_message(content="Done", ephemeral=True)
 
     @tasks.loop(seconds=120)
     async def check_for_jobs(self):

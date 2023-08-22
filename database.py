@@ -15,6 +15,17 @@ CREATE TABLE jobs(
 """)
     con.close()
 
+def create_links_table():
+    con = sqlite3.connect("jobs.db")
+    cur = con.cursor()
+    cur.execute("""
+CREATE TABLE links(
+                id INTEGER PRIMARY KEY, 
+                link TEXT, 
+                active BOOLEAN)
+""")
+    con.close()
+
 def search_job(upwork_id: str):
     con = sqlite3.connect("jobs.db")
     query = f"SELECT id from jobs WHERE upwork_id = ?"
@@ -30,7 +41,7 @@ def search_job(upwork_id: str):
     
 def all_jobs():
     con = sqlite3.connect("jobs.db")
-    query = f"SELECT COUNT(*) from jobs"
+    query = f"SELECT COUNT(*) FROM jobs"
     cur = con.cursor()
     cur.execute(query)
     row = cur.fetchall()
@@ -40,6 +51,19 @@ def all_jobs():
         print(row)
     else:
         return None
+
+def get_links():
+    con = sqlite3.connect("jobs.db")
+    query = f"SELECT id, link FROM links WHERE active = 1"
+    cur = con.cursor()
+    cur.execute(query)
+    rows = cur.fetchall()
+    con.close()
+
+    if not rows:
+        raise Exception("No links")
+    
+    return rows
     
 def create_job(
         title, 
@@ -63,9 +87,42 @@ def create_job(
         if con:
             con.close()
     
+def create_link(
+        link, 
+        ):
+    query = "INSERT INTO links (link, active) VALUES (?, ?)"
+
+    data = (link, True)
+    try:
+        con = sqlite3.connect("jobs.db")
+        cur = con.cursor()
+        cur.execute(query, data)
+        con.commit()
+    except sqlite3.Error as e:
+        print("Database error:", e)
+    finally:
+        if con:
+            con.close()
+
+def delete_link(
+        id, 
+        ):
+    query = "DELETE FROM links WHERE id = ?"
+
+    try:
+        con = sqlite3.connect("jobs.db")
+        cur = con.cursor()
+        cur.execute(query, (id, ))
+        con.commit()
+    except sqlite3.Error as e:
+        print("Database error:", e)
+    finally:
+        if con:
+            con.close()
 
 if __name__ == "__main__":
     #all_jobs()
     #pass
     create_jobs_table()
+    create_links_table()
     #print(search_job("https://www.upwork.com/jobs/Senior-Python-Developers-OpenAI-API-FastAPI_%7E0171a4398635543d19?source=rss"))
