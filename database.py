@@ -1,9 +1,11 @@
 import sqlite3
 
+
 def create_jobs_table():
     con = sqlite3.connect("jobs.db")
     cur = con.cursor()
-    cur.execute("""
+    cur.execute(
+        """
 CREATE TABLE jobs(
                 id INTEGER PRIMARY KEY, 
                 title TEXT, 
@@ -12,19 +14,38 @@ CREATE TABLE jobs(
                 published TEXT, 
                 upwork_id TEXT,
                 notified BOOLEAN)
-""")
+"""
+    )
     con.close()
+
 
 def create_links_table():
     con = sqlite3.connect("jobs.db")
     cur = con.cursor()
-    cur.execute("""
+    cur.execute(
+        """
 CREATE TABLE links(
                 id INTEGER PRIMARY KEY, 
                 link TEXT, 
                 active BOOLEAN)
-""")
+"""
+    )
     con.close()
+
+
+def check_table_exists(table_name):
+    con = sqlite3.connect("jobs.db")
+    cur = con.cursor()
+    cur.execute(
+        f"SELECT count(name) FROM sqlite_master WHERE type='table' AND name='{table_name}'"
+    )
+    count = cur.fetchone()[0]
+    con.close()
+    if count == 1:
+        return True
+    else:
+        return False
+
 
 def search_job(upwork_id: str):
     con = sqlite3.connect("jobs.db")
@@ -38,7 +59,8 @@ def search_job(upwork_id: str):
         return row
     else:
         return None
-    
+
+
 def all_jobs():
     con = sqlite3.connect("jobs.db")
     query = f"SELECT COUNT(*) FROM jobs"
@@ -52,6 +74,7 @@ def all_jobs():
     else:
         return None
 
+
 def get_links():
     con = sqlite3.connect("jobs.db")
     query = f"SELECT id, link FROM links WHERE active = 1"
@@ -61,18 +84,28 @@ def get_links():
     con.close()
 
     if not rows:
-        raise Exception("No links")
-    
+        raise Exception("Missing links. Add your first link by using command /add_link")
+
     return rows
-    
+
+
+def get_jobs_to_notify():
+    con = sqlite3.connect("jobs.db")
+    cursor = con.cursor()
+    cursor.execute("SELECT * FROM jobs WHERE notified = 0")
+    rows = cursor.fetchall()
+    con.close()
+    return rows
+
+
 def create_job(
-        title, 
-        link, 
-        summary,  
-        published, 
-        upwork_id, 
-        notified,
-        ):
+    title,
+    link,
+    summary,
+    published,
+    upwork_id,
+    notified,
+):
     query = "INSERT INTO jobs (title, link, summary, published, upwork_id, notified) VALUES (?, ?, ?, ?, ?, ?)"
 
     data = (title, link, summary, published, upwork_id, notified)
@@ -86,10 +119,11 @@ def create_job(
     finally:
         if con:
             con.close()
-    
+
+
 def create_link(
-        link, 
-        ):
+    link,
+):
     query = "INSERT INTO links (link, active) VALUES (?, ?)"
 
     data = (link, True)
@@ -104,15 +138,16 @@ def create_link(
         if con:
             con.close()
 
+
 def delete_link(
-        id, 
-        ):
+    id,
+):
     query = "DELETE FROM links WHERE id = ?"
 
     try:
         con = sqlite3.connect("jobs.db")
         cur = con.cursor()
-        cur.execute(query, (id, ))
+        cur.execute(query, (id,))
         con.commit()
     except sqlite3.Error as e:
         print("Database error:", e)
@@ -120,9 +155,5 @@ def delete_link(
         if con:
             con.close()
 
-if __name__ == "__main__":
-    #all_jobs()
-    #pass
-    create_jobs_table()
-    create_links_table()
-    #print(search_job("https://www.upwork.com/jobs/Senior-Python-Developers-OpenAI-API-FastAPI_%7E0171a4398635543d19?source=rss"))
+
+tables = {"jobs": create_jobs_table, "links": create_links_table}
