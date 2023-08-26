@@ -2,7 +2,6 @@ import feedparser
 from database import search_job, create_job, get_links
 
 base_url = "https://www.upwork.com/ab/feed/jobs/rss?q="
-rss_path = "django&sort=recency&paging=0"
 
 
 async def search_jobs(db_name):

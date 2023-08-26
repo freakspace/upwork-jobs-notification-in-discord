@@ -1,8 +1,6 @@
 import os
 import sqlite3
 
-# db_name = "jobs.db"
-
 
 def create_jobs_table(db_name):
     con = sqlite3.connect(db_name)
