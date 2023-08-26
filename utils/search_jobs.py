@@ -6,7 +6,7 @@ base_url = "https://www.upwork.com/ab/feed/jobs/rss?q="
 
 async def search_jobs(db_name):
     links = (
-        get_links()
+        get_links(db_name)
     )  # E.g. django&sort=recency&client_hires=1-9,10-&proposals=0-4,5-9,10-14,15-19
 
     for link in links:
