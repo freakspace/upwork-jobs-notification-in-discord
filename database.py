@@ -1,9 +1,10 @@
 import os
 import sqlite3
 
-db_name = "jobs.db"
+# db_name = "jobs.db"
 
-def create_jobs_table():
+
+def create_jobs_table(db_name):
     con = sqlite3.connect(db_name)
     cur = con.cursor()
     cur.execute(
@@ -15,13 +16,14 @@ CREATE TABLE jobs(
                 summary TEXT, 
                 published TEXT, 
                 upwork_id TEXT,
-                notified BOOLEAN)
+                notified BOOLEAN,
+                channel INTEGER)
 """
     )
     con.close()
 
 
-def create_links_table():
+def create_links_table(db_name):
     con = sqlite3.connect(db_name)
     cur = con.cursor()
     cur.execute(
@@ -29,13 +31,14 @@ def create_links_table():
 CREATE TABLE links(
                 id INTEGER PRIMARY KEY, 
                 link TEXT, 
-                active BOOLEAN)
+                active BOOLEAN,
+                channel INTEGER)
 """
     )
     con.close()
 
 
-def check_table_exists(table_name):
+def check_table_exists(db_name, table_name):
     con = sqlite3.connect(db_name)
     cur = con.cursor()
     cur.execute(
@@ -49,7 +52,7 @@ def check_table_exists(table_name):
         return False
 
 
-def search_job(upwork_id: str):
+def search_job(db_name, upwork_id):
     con = sqlite3.connect(db_name)
     query = f"SELECT id from jobs WHERE upwork_id = ?"
     cur = con.cursor()
@@ -63,7 +66,7 @@ def search_job(upwork_id: str):
         return None
 
 
-def all_jobs():
+def all_jobs(db_name):
     con = sqlite3.connect(db_name)
     query = f"SELECT COUNT(*) FROM jobs"
     cur = con.cursor()
@@ -77,9 +80,9 @@ def all_jobs():
         return None
 
 
-def get_links():
+def get_links(db_name):
     con = sqlite3.connect(db_name)
-    query = f"SELECT id, link FROM links WHERE active = 1"
+    query = f"SELECT id, link, channel FROM links WHERE active = 1"
     cur = con.cursor()
     cur.execute(query)
     rows = cur.fetchall()
@@ -91,7 +94,7 @@ def get_links():
     return rows
 
 
-def create_job(title, link, summary, published, upwork_id, notified, channel):
+def create_job(db_name, title, link, summary, published, upwork_id, notified, channel):
     query = "INSERT INTO jobs (title, link, summary, published, upwork_id, notified, channel) VALUES (?, ?, ?, ?, ?, ?, ?)"
 
     data = (title, link, summary, published, upwork_id, notified, channel)
@@ -107,7 +110,7 @@ def create_job(title, link, summary, published, upwork_id, notified, channel):
             con.close()
 
 
-def create_link(link, channel):
+def create_link(db_name, link, channel):
     query = "INSERT INTO links (link, active, channel) VALUES (?, ?, ?)"
 
     data = (link, True, channel)
@@ -124,6 +127,7 @@ def create_link(link, channel):
 
 
 def delete_link(
+    db_name,
     id,
 ):
     query = "DELETE FROM links WHERE id = ?"
@@ -139,7 +143,8 @@ def delete_link(
         if con:
             con.close()
 
-def dump_db():
+
+def dump_db(db_name):
     conn = sqlite3.connect(db_name)
 
     # Close the connection
@@ -151,5 +156,6 @@ def dump_db():
         return True
     else:
         return False
+
 
 tables = {"jobs": create_jobs_table, "links": create_links_table}

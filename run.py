@@ -1,6 +1,5 @@
 import os
 import asyncio
-import locale
 
 from dotenv import load_dotenv
 
@@ -18,16 +17,17 @@ bot = commands.Bot(intents=intents, auto_sync_commands=True)
 
 cogs_list = ["upwork"]
 
+db_name = os.getenv("DB_NAME")
+
+bot.db_name = db_name
+
 for cog in cogs_list:
     print(f"Loading {cog}")
-    bot.load_extension(f"cogs.{cog}")
+    cog = bot.load_extension(f"cogs.{cog}", store=True)
 
 
 def main():
-    environment = os.getenv("ENVIRONMENT")
-    print(f"Running bot in: {environment}")
     token = os.getenv("DISCORD_TOKEN")
-
     loop = asyncio.get_event_loop()
     loop.create_task(bot.start(token))
 

@@ -18,7 +18,7 @@ from database import (
 
 async def notify_new_jobs(bot):
     """Notifies of new jobs"""
-    conn = sqlite3.connect("jobs.db")
+    conn = sqlite3.connect(bot.db_name)
     cursor = conn.cursor()
     cursor.execute("SELECT * FROM jobs WHERE notified = 0")
     jobs_to_notify = cursor.fetchall()
@@ -26,7 +26,7 @@ async def notify_new_jobs(bot):
     print(f"Notifying about {len(jobs_to_notify)} jobs")
 
     for job in jobs_to_notify:
-        job_id, title, link, summary, published, _, notified, channel = job
+        job_id, title, link, summary, published, _, _, channel = job
 
         channel = await bot.fetch_channel(channel)
 
@@ -76,30 +76,33 @@ class UpworkBot(commands.Cog):
 
     def __init__(self, bot):
         self.bot = bot
+        self.db_name = bot.db_name
 
     @discord.slash_command()
     async def start_bot(self, ctx: commands.Context):
+        print(f"Initialize database: {self.db_name}")
         for key in tables:
-            if not check_table_exists(key):
+            if not check_table_exists(self.db_name, key):
                 # Create tables
-                tables[key]()
+                tables[key](self.db_name)
 
         try:
-            get_links()
+            get_links(self.db_name)
             self.check_for_jobs.start()
             await ctx.response.send_message(content="Bot started", ephemeral=True)
         except Exception as e:
             await ctx.response.send_message(content=e, ephemeral=True)
-    
+
     @discord.slash_command()
     async def dump_db(self, ctx: commands.Context):
-        is_dumped = dump_db()
+        is_dumped = dump_db(self.db_name)
 
         if is_dumped:
             await ctx.response.send_message(content="DB dumped", ephemeral=True)
         else:
-            await ctx.response.send_message(content="Error dumping the DB", ephemeral=True)
-
+            await ctx.response.send_message(
+                content="Error dumping the DB", ephemeral=True
+            )
 
     @discord.slash_command()
     async def add_link(
@@ -107,21 +110,22 @@ class UpworkBot(commands.Cog):
         ctx: commands.Context,
         link: discord.Option(str, "Link to Upwork jobs page"),
     ):
-        create_link(link=link, channel=ctx.channel.id)
+        create_link(db_name=self.db_name, link=link, channel=ctx.channel.id)
         await ctx.response.send_message(content="Link added", ephemeral=True)
 
     @discord.slash_command()
     async def delete_link(
         self, ctx: commands.Context, id: discord.Option(int, "Link id")
     ):
-        delete_link(id=id)
+        delete_link(db_name=self.db_name, id=id)
         await ctx.response.send_message(content="Link deleted", ephemeral=True)
 
     @discord.slash_command()
     async def show_links(self, ctx: commands.Context):
-        links = get_links()
+        links = get_links(db_name=self.db_name)
         for link in links:
-            await ctx.send(content=f"id: {link[0]}: {link[1]}")
+            id, link, channel = link
+            await ctx.send(content=f"id: {id}: {link} / {channel}")
 
         await ctx.response.send_message(content="Done", ephemeral=True)
 
@@ -129,7 +133,7 @@ class UpworkBot(commands.Cog):
     async def check_for_jobs(self):
         """Check for jobs on Upwork, saves to database, notifies in Discord"""
         print("Checking for jobs..")
-        await search_jobs()
+        await search_jobs(self.db_name)
         await notify_new_jobs(self.bot)
         print("Finished checking for jobs..")
 
