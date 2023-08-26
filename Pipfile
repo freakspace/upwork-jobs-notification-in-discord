@@ -8,7 +8,7 @@ requests = "==2.31.0"
 feedparser = "==6.0.10"
 python-dotenv = "==0.21.1"
 py-cord = "==2.4.1"
-black = "*"
+black = "==23.7.0"
 
 [dev-packages]
 

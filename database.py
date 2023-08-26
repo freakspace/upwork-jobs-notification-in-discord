@@ -1,8 +1,10 @@
+import os
 import sqlite3
 
+db_name = "jobs.db"
 
 def create_jobs_table():
-    con = sqlite3.connect("jobs.db")
+    con = sqlite3.connect(db_name)
     cur = con.cursor()
     cur.execute(
         """
@@ -20,7 +22,7 @@ CREATE TABLE jobs(
 
 
 def create_links_table():
-    con = sqlite3.connect("jobs.db")
+    con = sqlite3.connect(db_name)
     cur = con.cursor()
     cur.execute(
         """
@@ -34,7 +36,7 @@ CREATE TABLE links(
 
 
 def check_table_exists(table_name):
-    con = sqlite3.connect("jobs.db")
+    con = sqlite3.connect(db_name)
     cur = con.cursor()
     cur.execute(
         f"SELECT count(name) FROM sqlite_master WHERE type='table' AND name='{table_name}'"
@@ -48,7 +50,7 @@ def check_table_exists(table_name):
 
 
 def search_job(upwork_id: str):
-    con = sqlite3.connect("jobs.db")
+    con = sqlite3.connect(db_name)
     query = f"SELECT id from jobs WHERE upwork_id = ?"
     cur = con.cursor()
     cur.execute(query, (upwork_id,))
@@ -62,7 +64,7 @@ def search_job(upwork_id: str):
 
 
 def all_jobs():
-    con = sqlite3.connect("jobs.db")
+    con = sqlite3.connect(db_name)
     query = f"SELECT COUNT(*) FROM jobs"
     cur = con.cursor()
     cur.execute(query)
@@ -76,7 +78,7 @@ def all_jobs():
 
 
 def get_links():
-    con = sqlite3.connect("jobs.db")
+    con = sqlite3.connect(db_name)
     query = f"SELECT id, link FROM links WHERE active = 1"
     cur = con.cursor()
     cur.execute(query)
@@ -89,28 +91,12 @@ def get_links():
     return rows
 
 
-def get_jobs_to_notify():
-    con = sqlite3.connect("jobs.db")
-    cursor = con.cursor()
-    cursor.execute("SELECT * FROM jobs WHERE notified = 0")
-    rows = cursor.fetchall()
-    con.close()
-    return rows
+def create_job(title, link, summary, published, upwork_id, notified, channel):
+    query = "INSERT INTO jobs (title, link, summary, published, upwork_id, notified, channel) VALUES (?, ?, ?, ?, ?, ?, ?)"
 
-
-def create_job(
-    title,
-    link,
-    summary,
-    published,
-    upwork_id,
-    notified,
-):
-    query = "INSERT INTO jobs (title, link, summary, published, upwork_id, notified) VALUES (?, ?, ?, ?, ?, ?)"
-
-    data = (title, link, summary, published, upwork_id, notified)
+    data = (title, link, summary, published, upwork_id, notified, channel)
     try:
-        con = sqlite3.connect("jobs.db")
+        con = sqlite3.connect(db_name)
         cur = con.cursor()
         cur.execute(query, data)
         con.commit()
@@ -121,14 +107,12 @@ def create_job(
             con.close()
 
 
-def create_link(
-    link,
-):
-    query = "INSERT INTO links (link, active) VALUES (?, ?)"
+def create_link(link, channel):
+    query = "INSERT INTO links (link, active, channel) VALUES (?, ?, ?)"
 
-    data = (link, True)
+    data = (link, True, channel)
     try:
-        con = sqlite3.connect("jobs.db")
+        con = sqlite3.connect(db_name)
         cur = con.cursor()
         cur.execute(query, data)
         con.commit()
@@ -145,7 +129,7 @@ def delete_link(
     query = "DELETE FROM links WHERE id = ?"
 
     try:
-        con = sqlite3.connect("jobs.db")
+        con = sqlite3.connect(db_name)
         cur = con.cursor()
         cur.execute(query, (id,))
         con.commit()
@@ -155,5 +139,17 @@ def delete_link(
         if con:
             con.close()
 
+def dump_db():
+    conn = sqlite3.connect(db_name)
+
+    # Close the connection
+    conn.close()
+
+    # Delete the database file
+    if os.path.exists(db_name):
+        os.remove(db_name)
+        return True
+    else:
+        return False
 
 tables = {"jobs": create_jobs_table, "links": create_links_table}
