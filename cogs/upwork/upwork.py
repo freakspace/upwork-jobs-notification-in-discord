@@ -21,6 +21,9 @@ load_dotenv()
 
 exception_channel = os.getenv("EXCEPTION_CHANNEL")
 
+async def notify_exception(bot, exception):
+    channel = await bot.fetch_channel(exception_channel)
+    await channel.send(exception)
 
 async def notify_new_jobs(bot):
     """Notifies of new jobs"""
@@ -32,46 +35,51 @@ async def notify_new_jobs(bot):
     print(f"Notifying about {len(jobs_to_notify)} jobs")
 
     for job in jobs_to_notify:
-        job_id, title, link, summary, published, _, _, channel = job
-
-        channel = await bot.fetch_channel(channel)
-
-        embed = discord.Embed(
-            title="",
-            description="",
-            color=discord.Color.red(),
-        )
-
-        extracted_info = extract_info(summary)
 
         try:
-            skills = ", ".join([skill for skill in extracted_info["skills"]])
-        except KeyError:
-            skills = ""
+            job_id, title, link, summary, published, _, _, channel = job
 
-        compensation = None
-        if extracted_info["hourly_rate"]:
-            comp_from = extracted_info["hourly_rate"]["min"]
-            comp_to = extracted_info["hourly_rate"]["max"]
-            compensation = f"From {comp_from} to {comp_to} $/hr"
-        elif extracted_info["budget"]:
-            comp_from = extracted_info["budget"]
-            compensation = f"Budget: {comp_from}"
+            channel = await bot.fetch_channel(channel)
 
-        # Prepare fields
-        embed.add_field(name="Date", value=published[:1024], inline=False)
-        embed.add_field(name="Compensation", value=compensation[:1024], inline=False)
-        embed.add_field(name="Skills", value=skills[:1024], inline=False)
+            embed = discord.Embed(
+                title="",
+                description="",
+                color=discord.Color.red(),
+            )
 
-        # Prepare view
-        view = discord.ui.View(timeout=None)
-        button = discord.ui.Button(url=link, label="Show")
-        view.add_item(item=button)
-        message = f"<@{1141553740382482452}> {title}"
-        await channel.send(message)
-        await channel.send(embed=embed, view=view)
+            extracted_info = extract_info(summary)
 
-        cursor.execute("UPDATE jobs SET notified = 1 WHERE id = ?", (job_id,))
+            try:
+                skills = ", ".join([skill for skill in extracted_info["skills"]])
+            except KeyError:
+                skills = ""
+
+            compensation = None
+            if extracted_info["hourly_rate"]:
+                comp_from = extracted_info["hourly_rate"]["min"]
+                comp_to = extracted_info["hourly_rate"]["max"]
+                compensation = f"From {comp_from} to {comp_to} $/hr"
+            elif extracted_info["budget"]:
+                comp_from = extracted_info["budget"]
+                compensation = f"Budget: {comp_from}"
+
+            # Prepare fields
+            embed.add_field(name="Date", value=published[:1024] if published is not None else "Not defined", inline=False)
+            embed.add_field(name="Compensation", value=compensation[:1024] if compensation is not None else "Not defined", inline=False)
+            embed.add_field(name="Skills", value=skills[:1024] if skills is not None else "Not defined", inline=False)
+
+            # Prepare view
+            view = discord.ui.View(timeout=None)
+            button = discord.ui.Button(url=link, label="Show")
+            view.add_item(item=button)
+            message = f"<@{1141553740382482452}> {title}"
+            await channel.send(message)
+            await channel.send(embed=embed, view=view)
+
+            cursor.execute("UPDATE jobs SET notified = 1 WHERE id = ?", (job_id,))
+
+        except Exception as e:
+            await notify_exception(bot, e)
 
     conn.commit()
     conn.close()
@@ -139,12 +147,9 @@ class UpworkBot(commands.Cog):
     async def check_for_jobs(self):
         """Check for jobs on Upwork, saves to database, notifies in Discord"""
         print("Checking for jobs..")
-        try:
-            await search_jobs(self.db_name)
-            await notify_new_jobs(self.bot)
-        except Exception as e:
-            channel = await self.bot.fetch_channel(exception_channel)
-            await channel.send(e)
+        await search_jobs(self.db_name)
+        await notify_new_jobs(self.bot)
+
 
         print("Finished checking for jobs..")
 
