@@ -1,4 +1,7 @@
+import os
 import sqlite3
+
+from dotenv import load_dotenv
 
 import discord
 from discord.ext import commands, tasks
@@ -13,6 +16,10 @@ from database import (
     dump_db,
     tables,
 )
+
+load_dotenv()
+
+exception_channel = os.getenv("EXCEPTION_CHANNEL")
 
 
 async def notify_new_jobs(bot):
@@ -52,9 +59,9 @@ async def notify_new_jobs(bot):
             compensation = f"Budget: {comp_from}"
 
         # Prepare fields
-        embed.add_field(name="Date", value=published, inline=False)
-        embed.add_field(name="Compensation", value=compensation, inline=False)
-        embed.add_field(name="Skills", value=skills, inline=False)
+        embed.add_field(name="Date", value=published[:1024], inline=False)
+        embed.add_field(name="Compensation", value=compensation[:1024], inline=False)
+        embed.add_field(name="Skills", value=skills[:1024], inline=False)
 
         # Prepare view
         view = discord.ui.View(timeout=None)
@@ -132,8 +139,13 @@ class UpworkBot(commands.Cog):
     async def check_for_jobs(self):
         """Check for jobs on Upwork, saves to database, notifies in Discord"""
         print("Checking for jobs..")
-        await search_jobs(self.db_name)
-        await notify_new_jobs(self.bot)
+        try:
+            await search_jobs(self.db_name)
+            await notify_new_jobs(self.bot)
+        except Exception as e:
+            channel = await self.bot.fetch_channel(exception_channel)
+            await channel.send(e)
+
         print("Finished checking for jobs..")
 
     @check_for_jobs.before_loop
