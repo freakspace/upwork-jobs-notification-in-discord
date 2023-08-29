@@ -50,7 +50,7 @@ async def notify_new_jobs(bot):
             extracted_info = extract_info(summary)
 
             try:
-                skills = ", ".join([skill for skill in extracted_info["skills"]])
+                skills = ", ".join([skill for skill in extracted_info["skills"]]) if extracted_info["skills"] is not None else ""
             except KeyError:
                 skills = ""
 
