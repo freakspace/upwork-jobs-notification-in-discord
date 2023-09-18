@@ -14,6 +14,8 @@ async def search_jobs(db_name):
 
         url = base_url + link
 
+        url = url.replace(" ", "%20")
+        
         feed = feedparser.parse(url)
 
         print(f"Found {len(feed.entries)} entries")
